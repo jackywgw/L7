@@ -7423,7 +7423,9 @@ ndpi_protocol_match host_match[] = {
   { "tim.com.br",                       "TIM",                  NDPI_SERVICE_TIM, NDPI_PROTOCOL_ACCEPTABLE },
   { "tim.it",                           "TIM",                  NDPI_SERVICE_TIM, NDPI_PROTOCOL_ACCEPTABLE },
   { ".qq.com",                          "QQ",                   NDPI_PROTOCOL_QQ, NDPI_PROTOCOL_FUN },
-
+  { "wx.qlogo.cn",                      "WeiXin",               NDPI_PROTOCOL_WEIXIN, NDPI_PROTOCOL_FUN},
+  { ".qpic.cn",                         "WeiXin",               NDPI_PROTOCOL_WEIXIN, NDPI_PROTOCOL_FUN},
+  { ".weixin.",                         "WeiXin",               NDPI_PROTOCOL_WEIXIN, NDPI_PROTOCOL_FUN},
   /* https://support.cipafilter.com/index.php?/Knowledgebase/Article/View/117/0/snapchat---how-to-block */
   { "feelinsonice.appspot.com",         "Snapchat",             NDPI_SERVICE_SNAPCHAT, NDPI_PROTOCOL_FUN },
   { "feelinsonice-hrd.appspot.com",     "Snapchat",             NDPI_SERVICE_SNAPCHAT, NDPI_PROTOCOL_FUN },
