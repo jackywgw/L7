@@ -7478,7 +7478,8 @@ ndpi_protocol_match host_match[] = {
   { ".geotrust.com",       		"OFFICE_365",       	NDPI_SERVICE_OFFICE_365, NDPI_PROTOCOL_ACCEPTABLE },
   { ".entrust.net",       		"OFFICE_365",       	NDPI_SERVICE_OFFICE_365, NDPI_PROTOCOL_ACCEPTABLE },
   { ".public-trust.com",       		"OFFICE_365",       	NDPI_SERVICE_OFFICE_365, NDPI_PROTOCOL_ACCEPTABLE },
-
+  { ".youku.com",               "YouKu",                NDPI_SERVICE_YOUKU,NDPI_PROTOCOL_FUN },
+  { ".ykimg.com",               "YouKu",                NDPI_SERVICE_YOUKU,NDPI_PROTOCOL_FUN },
   { NULL, 0 }
 };
 
