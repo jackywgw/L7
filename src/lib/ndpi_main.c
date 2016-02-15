@@ -1503,6 +1503,11 @@ static void ndpi_init_protocol_defaults(struct ndpi_detection_module_struct *ndp
 			    no_master, "WeiXin",
 			    ndpi_build_default_ports(ports_a, 0, 0, 0, 0, 0),	/* TCP */
 			    ndpi_build_default_ports(ports_b, 0, 0, 0, 0, 0));	/* UDP */
+    ndpi_set_proto_defaults(ndpi_mod, NDPI_PROTOCOL_FUN, NDPI_SERVICE_YOUKU,
+			    no_master,
+			    no_master, "YOUKU",
+			    ndpi_build_default_ports(ports_a, 0, 0, 0, 0, 0),	/* TCP */
+			    ndpi_build_default_ports(ports_b, 0, 0, 0, 0, 0));	/* UDP */
 
     /* calling function for host and content matched protocols */
     init_string_based_protocols(ndpi_mod);
@@ -1777,7 +1782,7 @@ u_int16_t ndpi_guess_protocol_id(struct ndpi_detection_module_struct *ndpi_struc
     int low  = ndpi_min(sport, dport);
     int high = ndpi_max(sport, dport);
 
-    node.default_port = low; /* Check server port first */
+    node.default_port = low; /* Check server port first *//*default : server port is smaller than client port*/
     ret = ndpi_tfind(&node,
 		     (proto == IPPROTO_TCP) ? (void*)&ndpi_struct->tcpRoot : (void*)&ndpi_struct->udpRoot,
 		     ndpi_default_ports_tree_node_t_cmp);
@@ -2067,6 +2072,9 @@ void ndpi_set_protocol_detection_bitmask2(struct ndpi_detection_module_struct *n
 
   /* set this here to zero to be interrupt safe */
   ndpi_struct->callback_buffer_size = 0;
+
+  /*YOUKU*/
+  init_youku_dissector(ndpi_struct, &a, detection_bitmask);
 
   /* HTTP */
   init_http_dissector(ndpi_struct, &a, detection_bitmask);
@@ -2729,13 +2737,13 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
   } else {
     ndpi_int_reset_packet_protocol(&flow->packet);
   }
-
+  /*get l3 layer packet length*/
   l3len = flow->packet.l3_packet_len;
 
 #ifdef NDPI_DETECTION_SUPPORT_IPV6
   if(flow->packet.iph != NULL) {
 #endif							/* NDPI_DETECTION_SUPPORT_IPV6 */
-
+  /*get ip header*/
     decaps_iph =flow->packet.iph;
 
 #ifdef NDPI_DETECTION_SUPPORT_IPV6
@@ -2769,7 +2777,7 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
   l4ptr = NULL;
   l4len = 0;
   l4protocol = 0;
-
+  /*get L4 Layer information fo packets*/
   l4_result =
     ndpi_detection_get_l4_internal(ndpi_struct, (const u_int8_t *) decaps_iph, l3len, &l4ptr, &l4len, &l4protocol, 0);
 
@@ -2784,7 +2792,7 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
   if(l4protocol == 6 /* TCP */  &&flow->packet.l4_packet_len >= 20 /* min size of tcp */ ) {
     /* tcp */
     flow->packet.tcp = (struct ndpi_tcphdr *) l4ptr;
-
+    /*doff*4 is the length of tcp header*/
     if(flow->packet.l4_packet_len >=flow->packet.tcp->doff * 4) {
       flow->packet.payload_packet_len =
 	flow->packet.l4_packet_len -flow->packet.tcp->doff * 4;
