@@ -425,7 +425,22 @@ static void check_content_type_and_change_protocol(struct ndpi_detection_module_
 #ifdef NDPI_CONTENT_AVI
 #endif
 #endif
+  /* search server line*/
+  if(packet->server_line.ptr != NULL && packet->server_line.len > strlen("YOUKU")) {
+       if(memcmp(packet->server_line.ptr,"YOUKU.NB",strlen("YOUKU.NB")) == 0
+        || memcmp(packet->server_line.ptr,"YouKu",strlen("YouKu")) == 0
+        || memcmp(packet->server_line.ptr,"IKUACC",strlen("IKUACC")) == 0) {
+          packet->detected_protocol_stack[1] = NDPI_PROTOCOL_HTTP,
+          packet->detected_protocol_stack[0] = NDPI_SERVICE_YOUKU;
 
+          flow->detected_protocol_stack[0] = packet->detected_protocol_stack[0],
+          flow->detected_protocol_stack[1] = packet->detected_protocol_stack[1];
+
+          //ndpi_int_http_add_connection(ndpi_struct, flow, NDPI_SERVICE_YOUKU);
+          //ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_SERVICE_YOUKU, NDPI_PROTOCOL_UNKNOWN);                                                                      
+          return;
+      }
+  }
   if(packet->content_line.ptr != NULL && packet->content_line.len != 0) {
     NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG, "Content Type Line found %.*s\n",
 	     packet->content_line.len, packet->content_line.ptr);
@@ -774,10 +789,11 @@ static void ndpi_check_http_tcp(struct ndpi_detection_module_struct *ndpi_struct
 
     filename_start = http_request_url_offset(ndpi_struct, flow);
 
-
+    /*filename_start == 0 : didn't find request url such as GET, POST, HEAD, CONNECT*/
     if(filename_start == 0) {
       NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG,
 	       "Filename HTTP not found, we look for possible truncate flow...\n");
+      /*if it is http response, just set it as protocol HTTP*/
       if(packet->payload_packet_len >= 7 && memcmp(packet->payload, "HTTP/1.", 7) == 0) {
         NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG,
 		 "HTTP response found (truncated flow ?)\n");
@@ -785,7 +801,7 @@ static void ndpi_check_http_tcp(struct ndpi_detection_module_struct *ndpi_struct
         check_content_type_and_change_protocol(ndpi_struct, flow);
         return;
       }
-
+      /*not HTTP protocol*/
       NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG, "Exclude HTTP\n");
       http_bitmask_exclude(flow);
       return;
@@ -793,7 +809,7 @@ static void ndpi_check_http_tcp(struct ndpi_detection_module_struct *ndpi_struct
 
     NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG,
 	     "Filename HTTP found: %d, we look for line info..\n", filename_start);
-
+    /*parse HTTP request LINEs*/
     ndpi_parse_packet_line_info(ndpi_struct, flow);
 
     if(packet->parsed_lines <= 1) {
@@ -810,7 +826,7 @@ static void ndpi_check_http_tcp(struct ndpi_detection_module_struct *ndpi_struct
 
     NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG,
 	     "Found more than one line, we look further for the next packet...\n");
-
+     /*first line is end with " HTTP/1."*/
     if(packet->line[0].len >= (9 + filename_start)
         && memcmp(&packet->line[0].ptr[packet->line[0].len - 9], " HTTP/1.", 8) == 0) {
 
@@ -860,7 +876,7 @@ static void ndpi_check_http_tcp(struct ndpi_detection_module_struct *ndpi_struct
 	return;
       }
     }
-
+    /*NOT http request*/
     NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG, "HTTP: REQUEST NOT HTTP CONFORM\n");
     http_bitmask_exclude(flow);
   } else if((flow->l4.tcp.http_stage == 1) || (flow->l4.tcp.http_stage == 2)) {
