@@ -37,3 +37,5 @@ stamp-h1
 /m4/lt~obsolete.m4
 /autom4te.cache/*
 .deps
+tags
+cscope*
