@@ -16,14 +16,41 @@ void ndpi_search_youku_tcp(struct ndpi_detection_module_struct *ndpi_struct, str
     struct ndpi_packet_struct *packet = &flow->packet;
     NDPI_LOG(NDPI_SERVICE_YOUKU,ndpi_struct, NDPI_LOG_DEBUG,"youku detection...\n");
     /* skip marked packets by checking if the detection protocol statck */
-    if (packet->detected_protocol_stack[0] == NDPI_SERVICE_YOUKU) 
+    /*if (packet->detected_protocol_stack[0] == NDPI_SERVICE_YOUKU) 
         return ;
+*/
+    if (
+#ifdef NDPI_PROTOCOL_HTTP
+            packet->detected_protocol_stack[0] == NDPI_PROTOCOL_HTTP ||
+#endif    
+            ((packet->payload_packet_len > 3 && memcmp(packet->payload, "GET ", 4) == 0) ||
+             (packet->payload_packet_len > 4 && memcmp(packet->payload, "POST", 5) == 0) ||
+             (packet->payload_packet_len > NDPI_STATICSTRING_LEN("HTTP/1.1 20") && memcmp(packet->payload,"HTTP/1.1 20",NDPI_STATICSTRING_LEN("HTTP/1.1 20"))))) {
+        ndpi_parse_packet_line_info(ndpi_struct, flow);
+        if (packet->server_line.ptr != NULL &&
+            packet->server_line.len > NDPI_STATICSTRING_LEN("YOUKU") && 
+            ((memcmp(packet->server_line.ptr,"YOUKU.NB",NDPI_STATICSTRING_LEN("YOUKU.NB")) == 0) ||
+             (memcmp(packet->server_line.ptr,"YouKu",NDPI_STATICSTRING_LEN("YouKu")) == 0) ||
+             (memcmp(packet->server_line.ptr,"IKUACC",NDPI_STATICSTRING_LEN("IKUACC")) == 0)
+            )) {
+            //printf("detected youku by server_line\n");
+            ndpi_int_youku_add_connection(ndpi_struct, flow);
+            return;
+        }else if (packet->referer_line.ptr != NULL &&
+            packet->referer_line.len > NDPI_STATICSTRING_LEN("http://static.youku.com/") && 
+            memcmp(packet->referer_line.ptr,"http://static.youku.com/", NDPI_STATICSTRING_LEN("http://static.youku.com/")) == 0) {
+            //printf("detected youku with referer_line......hahhahhah\n");
+            ndpi_int_youku_add_connection(ndpi_struct, flow);
+            return;
+        }
+    }
+#if 0
     if (packet->packet_direction == flow->setup_packet_direction)
         return;
 
     if ((packet->payload_packet_len <= NDPI_STATICSTRING_LEN("HTTP/1.1 20"))
         || (packet->payload == NULL)
-        || (memcmp(packet->payload, "HTTP/1.1 ",NDPI_STATICSTRING_LEN("HTTP/1.1")) != 0))
+        || (memcmp(packet->payload, "HTTP/1.1 ",NDPI_STATICSTRING_LEN("HTTP/1.1 ")) != 0))
     {
         return;
     }
@@ -49,7 +76,7 @@ void ndpi_search_youku_tcp(struct ndpi_detection_module_struct *ndpi_struct, str
         }
 //#endif
     }
-
+#endif
    return;
 }
 void ndpi_search_youku(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
