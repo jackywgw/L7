@@ -25,7 +25,10 @@ void ndpi_search_youku_tcp(struct ndpi_detection_module_struct *ndpi_struct, str
 #endif    
             ((packet->payload_packet_len > 3 && memcmp(packet->payload, "GET ", 4) == 0) ||
              (packet->payload_packet_len > 4 && memcmp(packet->payload, "POST", 5) == 0) ||
-             (packet->payload_packet_len > NDPI_STATICSTRING_LEN("HTTP/1.1 20") && memcmp(packet->payload,"HTTP/1.1 20",NDPI_STATICSTRING_LEN("HTTP/1.1 20"))))) {
+             (packet->payload_packet_len > NDPI_STATICSTRING_LEN("HTTP/1.1 20") && 
+              ((memcmp(packet->payload,"HTTP/1.1 20",NDPI_STATICSTRING_LEN("HTTP/1.1 20")) == 0) ||
+              (memcmp(packet->payload,"HTTP/1.0 20",NDPI_STATICSTRING_LEN("HTTP/1.0 20")) == 0))
+             ))) {
         ndpi_parse_packet_line_info(ndpi_struct, flow);
         if (packet->server_line.ptr != NULL &&
             packet->server_line.len > NDPI_STATICSTRING_LEN("YOUKU") && 
@@ -33,7 +36,7 @@ void ndpi_search_youku_tcp(struct ndpi_detection_module_struct *ndpi_struct, str
              (memcmp(packet->server_line.ptr,"YouKu",NDPI_STATICSTRING_LEN("YouKu")) == 0) ||
              (memcmp(packet->server_line.ptr,"IKUACC",NDPI_STATICSTRING_LEN("IKUACC")) == 0)
             )) {
-            //printf("detected youku by server_line\n");
+            printf("detected youku by server_line\n");
             ndpi_int_youku_add_connection(ndpi_struct, flow);
             return;
         }else if (packet->referer_line.ptr != NULL &&
