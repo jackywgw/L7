@@ -1781,7 +1781,7 @@ u_int16_t ndpi_guess_protocol_id(struct ndpi_detection_module_struct *ndpi_struc
   if(sport && dport) {
     int low  = ndpi_min(sport, dport);
     int high = ndpi_max(sport, dport);
-
+    /*ndpi_default_ports_tree_node_t_cmp use default_port to compare the tcp or udp tree*/
     node.default_port = low; /* Check server port first *//*default : server port is smaller than client port*/
     ret = ndpi_tfind(&node,
 		     (proto == IPPROTO_TCP) ? (void*)&ndpi_struct->tcpRoot : (void*)&ndpi_struct->udpRoot,
@@ -2723,7 +2723,7 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
   /* reset payload_packet_len, will be set if ipv4 tcp or udp */
   flow->packet.payload_packet_len = 0;
   flow->packet.l4_packet_len = 0;
-  flow->packet.l3_packet_len = packetlen;
+  flow->packet.l3_packet_len = packetlen; /*set flow's l3_packet_len*/
 
   flow->packet.tcp = NULL;
   flow->packet.udp = NULL;
@@ -2733,8 +2733,10 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
 #endif							/* NDPI_DETECTION_SUPPORT_IPV6 */
 
   if(flow) {
+    /*set packet->detected_protocol_stack and packet->protocol_stack_info from flow*/
     ndpi_apply_flow_protocol_to_packet(flow, &flow->packet);
   } else {
+    /*init packet->detected_protocol_stack as UNKNOWN*/
     ndpi_int_reset_packet_protocol(&flow->packet);
   }
   /*get l3 layer packet length*/
@@ -2826,7 +2828,8 @@ static int ndpi_init_packet_header(struct ndpi_detection_module_struct *ndpi_str
   }
   return 0;
 }
-
+/*Per tcph/udph, confirm packet direction,packet counters/packet_direction, packet bytes/packet_direction
+ * if tcp, statistic syn/syn+ack/ack/tcp sequence number*/
 void ndpi_connection_tracking(struct ndpi_detection_module_struct *ndpi_struct,
 			      struct ndpi_flow_struct *flow)
 {
@@ -2842,7 +2845,8 @@ void ndpi_connection_tracking(struct ndpi_detection_module_struct *ndpi_struct,
   u_int8_t proxy_enabled = 0;
 
   packet->tcp_retransmission = 0, packet->packet_direction = 0;
-
+  /*if direction_detect_disable == 1, packet->packet_direction = flow->packet_direction
+   * else if daddr > saddr, packet->packet_direction = 1*/
   if(ndpi_struct->direction_detect_disable) {
     packet->packet_direction = flow->packet_direction;
   } else {
@@ -2867,18 +2871,20 @@ void ndpi_connection_tracking(struct ndpi_detection_module_struct *ndpi_struct,
   if(tcph != NULL) {
     /* reset retried bytes here before setting it */
     packet->num_retried_bytes = 0;
-
+    /*if tcph dest port is larger than tcph source port, packet_direction is 1, or packet_direction is 0*/
     if(!ndpi_struct->direction_detect_disable)
       packet->packet_direction = (tcph->source < tcph->dest) ? 1 : 0;
-
+     /*syn packet*/
     if(tcph->syn != 0 && tcph->ack == 0 && flow->l4.tcp.seen_syn == 0 && flow->l4.tcp.seen_syn_ack == 0
        && flow->l4.tcp.seen_ack == 0) {
       flow->l4.tcp.seen_syn = 1;
     }
+    /*syn+ack packet*/
     if(tcph->syn != 0 && tcph->ack != 0 && flow->l4.tcp.seen_syn == 1 && flow->l4.tcp.seen_syn_ack == 0
        && flow->l4.tcp.seen_ack == 0) {
       flow->l4.tcp.seen_syn_ack = 1;
     }
+    /*ack*/
     if(tcph->syn == 0 && tcph->ack == 1 && flow->l4.tcp.seen_syn == 1 && flow->l4.tcp.seen_syn_ack == 1
        && flow->l4.tcp.seen_ack == 0) {
       flow->l4.tcp.seen_ack = 1;
@@ -2932,18 +2938,19 @@ void ndpi_connection_tracking(struct ndpi_detection_module_struct *ndpi_struct,
       flow->next_tcp_seq_nr[1] = 0;
     }
   } else if(udph != NULL) {
+    /*if packet is udp, and if dest port is larger than source port, packet_direction equal 1, or packet_direction equal 0*/
     if(!ndpi_struct->direction_detect_disable)
       packet->packet_direction = (udph->source < udph->dest) ? 1 : 0;
   }
-
+  /*must packet counter is 65000 MAX_PACKET_COUNTER*/
   if(flow->packet_counter < MAX_PACKET_COUNTER && packet->payload_packet_len) {
     flow->packet_counter++;
   }
-
+  /*count packets per packet_direction*/
   if(flow->packet_direction_counter[packet->packet_direction] < MAX_PACKET_COUNTER && packet->payload_packet_len) {
     flow->packet_direction_counter[packet->packet_direction]++;
   }
-
+  /*count bytes counter per packet_direction*/
   if(flow->byte_counter[packet->packet_direction] + packet->payload_packet_len >
      flow->byte_counter[packet->packet_direction]) {
     flow->byte_counter[packet->packet_direction] += packet->payload_packet_len;
@@ -3230,7 +3237,7 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
 					    struct ndpi_flow_struct *flow,
 					    const unsigned char *packet,
 					    const unsigned short packetlen,
-					    const u_int64_t current_tick_l,
+					    const u_int64_t current_tick_l,  /*time, unit: msec*/
 					    struct ndpi_id_struct *src,
 					    struct ndpi_id_struct *dst)
 {
@@ -3242,6 +3249,7 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
     return(ret);
 
   if(flow->server_id == NULL) flow->server_id = dst; /* Default */
+  /*if the flow had been detected as some protocol, just goto ret_protocols*/
   if(flow->detected_protocol_stack[0] != NDPI_PROTOCOL_UNKNOWN)
     goto ret_protocols;
 
@@ -3256,16 +3264,18 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
   flow->packet.tick_timestamp = (u_int32_t)current_tick_l/1000;
 
   /* parse packet */
+  /*set ip header to flow->packet.iph*/
   flow->packet.iph = (struct ndpi_iphdr *)packet;
   /* we are interested in ipv4 packet */
-
+  /*get l4 information (udp/tcp/unknown) for flow struct per packet and packetlen*/
   if(ndpi_init_packet_header(ndpi_struct, flow, packetlen) != 0)
     return(ret);
 
   /* detect traffic for tcp or udp only */
 
   flow->src = src, flow->dst = dst;
-
+/*Per tcph/udph, confirm packet direction,packet counters/packet_direction, packet bytes/packet_direction
+ * if tcp, statistic syn/syn+ack/ack/tcp sequence number*/
   ndpi_connection_tracking(ndpi_struct, flow);
 
   /* build ndpi_selction packet bitmask */
@@ -3316,25 +3326,27 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
     if(flow->packet.udp) sport = ntohs(flow->packet.udp->source), dport = ntohs(flow->packet.udp->dest);
     else if(flow->packet.tcp) sport = ntohs(flow->packet.tcp->source), dport = ntohs(flow->packet.tcp->dest);
     else sport = dport = 0;
-
+    /*guess protocol id through protocol,if tcp/udp,use /sport/dport to determine the application protocol*/
     flow->guessed_protocol_id = (int16_t)ndpi_guess_protocol_id(ndpi_struct, protocol, sport, dport);
     flow->protocol_id_already_guessed = 1;
-
+    /*if protocol is not TCP nor UDP, don't check_ndpi_flow_func*/
     if((protocol != IPPROTO_TCP) && (protocol != IPPROTO_UDP)) {
       flow->detected_protocol_stack[0] = flow->guessed_protocol_id;
       goto ret_protocols;
     }
   }
-
+  /*check tcp/udp flow*/
   check_ndpi_flow_func(ndpi_struct, flow, &ndpi_selection_packet);
 
   a = flow->packet.detected_protocol_stack[0];
+  /*ndpi_struct->detection_bitmask default is all which is set by NDPI_BITMASK_SET(ndpi_struct->detection_bitmask, *dbm)
+   * if global detection_bitmask didn't have detected_protocol_stack a, reset a to NDPI_PROTOCOL_UNKNOWN*/
   if(NDPI_COMPARE_PROTOCOL_TO_BITMASK(ndpi_struct->detection_bitmask, a) == 0)
     a = NDPI_PROTOCOL_UNKNOWN;
 
   if(a != NDPI_PROTOCOL_UNKNOWN) {
     int i;
-
+    /*if has host_server_name, tolower it*/
     for(i=0; (i<sizeof(flow->host_server_name)) && (flow->host_server_name[i] != '\0'); i++)
       flow->host_server_name[i] = tolower(flow->host_server_name[i]);
 
@@ -3342,6 +3354,7 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
   }
 
  ret_protocols:
+  /*flow->detected_protocol_stack[1] is master_protocol*/
   if(flow->detected_protocol_stack[1] != NDPI_PROTOCOL_UNKNOWN) {
     ret.master_protocol = flow->detected_protocol_stack[1], ret.protocol = flow->detected_protocol_stack[0];
 
@@ -3353,7 +3366,7 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
   if((ret.protocol == NDPI_PROTOCOL_UNKNOWN)
      && flow->packet.iph
      && (!flow->host_already_guessed)) {
-
+    /*if didn't get protocol through above process, use ip address(source ip/dest ip) to determine protocol*/
     if((flow->guessed_host_proto_id = ndpi_network_ptree_match(ndpi_struct, (struct in_addr *)&flow->packet.iph->saddr)) == NDPI_PROTOCOL_UNKNOWN) {
       flow->guessed_host_proto_id = ndpi_network_ptree_match(ndpi_struct, (struct in_addr *)&flow->packet.iph->daddr);
     }

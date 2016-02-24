@@ -1011,7 +1011,7 @@ static void terminateDetection(u_int16_t thread_id) {
 
 // ipsize = header->len - ip_offset ; rawsize = header->len
 static unsigned int packet_processing(u_int16_t thread_id,
-				      const u_int64_t time,
+				      const u_int64_t time,  /*time, unit: msec*/
 				      u_int16_t vlan_id,
 				      const struct ndpi_iphdr *iph,
 				      struct ndpi_ipv6hdr *iph6,
