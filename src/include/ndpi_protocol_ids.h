@@ -268,7 +268,11 @@
 #define NDPI_SERVICE_HOTSPOT_SHIELD                     215
 #define NDPI_SERVICE_OCS                                218
 #define NDPI_SERVICE_OFFICE_365                         219
-#define NDPI_SERVICE_YOUKU                              222
+#define NDPI_SERVICE_BAIDU                              222
+#define NDPI_SERVICE_TAOBAO                             223
+#define NDPI_SERVICE_WEIBO                              224
+#define NDPI_SERVICE_IQIYI                              225
+#define NDPI_SERVICE_YOUKU                              226
 /* UPDATE UPDATE UPDATE UPDATE UPDATE UPDATE UPDATE UPDATE UPDATE */
 #define NDPI_LAST_IMPLEMENTED_PROTOCOL			        NDPI_SERVICE_YOUKU
 
