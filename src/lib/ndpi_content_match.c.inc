@@ -7493,6 +7493,8 @@ ndpi_protocol_match host_match[] = {
   { ".entrust.net",       		"OFFICE_365",       	NDPI_SERVICE_OFFICE_365, NDPI_PROTOCOL_ACCEPTABLE },
   { ".public-trust.com",       		"OFFICE_365",       	NDPI_SERVICE_OFFICE_365, NDPI_PROTOCOL_ACCEPTABLE },
   { ".iqiyi.com",               "IQIYI",                NDPI_SERVICE_IQIYI,NDPI_PROTOCOL_FUN },
+  { ".qiyi.",               "IQIYI",                NDPI_SERVICE_IQIYI,NDPI_PROTOCOL_FUN },
+  { ".71.am",               "IQIYI",                NDPI_SERVICE_IQIYI,NDPI_PROTOCOL_FUN },
   { ".qiyipic.com",               "IQIYI",                NDPI_SERVICE_IQIYI,NDPI_PROTOCOL_FUN },
   { ".youku.com",               "YouKu",                NDPI_SERVICE_YOUKU,NDPI_PROTOCOL_FUN },
   { ".ykimg.com",               "YouKu",                NDPI_SERVICE_YOUKU,NDPI_PROTOCOL_FUN },

@@ -430,16 +430,24 @@ static void check_content_type_and_change_protocol(struct ndpi_detection_module_
        if(memcmp(packet->server_line.ptr,"YOUKU.NB",strlen("YOUKU.NB")) == 0
         || memcmp(packet->server_line.ptr,"YouKu",strlen("YouKu")) == 0
         || memcmp(packet->server_line.ptr,"IKUACC",strlen("IKUACC")) == 0) {
-          packet->detected_protocol_stack[1] = NDPI_PROTOCOL_HTTP,
+          packet->detected_protocol_stack[1] = NDPI_PROTOCOL_HTTP;
           packet->detected_protocol_stack[0] = NDPI_SERVICE_YOUKU;
 
-          flow->detected_protocol_stack[0] = packet->detected_protocol_stack[0],
+          flow->detected_protocol_stack[0] = packet->detected_protocol_stack[0];
           flow->detected_protocol_stack[1] = packet->detected_protocol_stack[1];
 
           //ndpi_int_http_add_connection(ndpi_struct, flow, NDPI_SERVICE_YOUKU);
           //ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_SERVICE_YOUKU, NDPI_PROTOCOL_UNKNOWN);                                                                      
           return;
       }
+  }
+  if(packet->referer_line.ptr != NULL && packet->referer_line.len > strlen("http://www.iqiyi.com/")) {
+	  if(memcmp(packet->referer_line.ptr,"http://www.iqiyi.com/",strlen("http://www.iqiyi.com/")) == 0) {
+		  packet->detected_protocol_stack[1] = NDPI_PROTOCOL_HTTP;
+		  packet->detected_protocol_stack[0] = NDPI_SERVICE_IQIYI;
+          flow->detected_protocol_stack[0] = packet->detected_protocol_stack[0];
+          flow->detected_protocol_stack[1] = packet->detected_protocol_stack[1];
+	  }
   }
   if(packet->content_line.ptr != NULL && packet->content_line.len != 0) {
     NDPI_LOG(NDPI_PROTOCOL_HTTP, ndpi_struct, NDPI_LOG_DEBUG, "Content Type Line found %.*s\n",
