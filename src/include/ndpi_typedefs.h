@@ -728,11 +728,11 @@ typedef enum {
 
 /* ntop extensions */
 typedef struct ndpi_proto_defaults {
-  char *protoName;
-  u_int16_t protoId, protoIdx;
+  char *protoName;                            /*The protocol name*/
+  u_int16_t protoId, protoIdx;                /*protoId:protocol defined in header file; protoIdx: protocol index which is set in ndpi_set_bitmask_protocol_detection*/
   u_int16_t master_tcp_protoId[2], master_udp_protoId[2]; /* The main protocols on which this sub-protocol sits on */
-  ndpi_protocol_breed_t protoBreed;
-  void (*func) (struct ndpi_detection_module_struct *, struct ndpi_flow_struct *flow);
+  ndpi_protocol_breed_t protoBreed;           /*The type of the protocol: as as Fun....*/
+  void (*func) (struct ndpi_detection_module_struct *, struct ndpi_flow_struct *flow);/*the callback function of releate protocol detection*/
 } ndpi_proto_defaults_t;
 
 typedef struct ndpi_default_ports_tree_node {
