@@ -39,6 +39,7 @@
 #include "third_party/src/ndpi_patricia.c"
 
 /* ftp://ftp.cc.uoc.gr/mirrors/OpenBSD/src/lib/libc/stdlib/tsearch.c */
+/*http://ftp.usa.openbsd.org/pub/OpenBSD/src/lib/libc/stdlib/tsearch.c*/
 /* find or insert datum into search tree */
 void *
 ndpi_tsearch(const void *vkey, void **vrootp,
@@ -420,12 +421,12 @@ void ndpi_set_proto_defaults(struct ndpi_detection_module_struct *ndpi_mod,
   name = ndpi_strdup(protoName);
 
   ndpi_mod->proto_defaults[protoId].protoName = name,
-    ndpi_mod->proto_defaults[protoId].protoId = protoId,
-    ndpi_mod->proto_defaults[protoId].protoBreed = breed;
+  ndpi_mod->proto_defaults[protoId].protoId = protoId,
+  ndpi_mod->proto_defaults[protoId].protoBreed = breed;
 
   memcpy(&ndpi_mod->proto_defaults[protoId].master_tcp_protoId, tcp_master_protoId, 2*sizeof(u_int16_t));
   memcpy(&ndpi_mod->proto_defaults[protoId].master_udp_protoId, udp_master_protoId, 2*sizeof(u_int16_t));
-
+  /*only do it when port_low is not zeros*/
   for(j=0; j<MAX_DEFAULT_PORTS; j++) {
     if(udpDefPorts[j].port_low != 0) addDefaultPort(&udpDefPorts[j], &ndpi_mod->proto_defaults[protoId], &ndpi_mod->udpRoot);
     if(tcpDefPorts[j].port_low != 0) addDefaultPort(&tcpDefPorts[j], &ndpi_mod->proto_defaults[protoId], &ndpi_mod->tcpRoot);
@@ -466,8 +467,9 @@ static void addDefaultPort(ndpi_port_range *range,
   u_int16_t port;
 
   // printf("[NDPI] %s(%d)\n", __FUNCTION__, port);
-
+  /*now range->port_low == range->port_high*/
   for(port=range->port_low; port<=range->port_high; port++) {
+    /*create a default port tree node for port*/
     ndpi_default_ports_tree_node_t *node = (ndpi_default_ports_tree_node_t*)ndpi_malloc(sizeof(ndpi_default_ports_tree_node_t));
 
     if(!node) {
