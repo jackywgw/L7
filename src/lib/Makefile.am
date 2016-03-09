@@ -157,6 +157,7 @@ libndpi_la_SOURCES = ndpi_content_match.c.inc \
 		     protocols/zeromq.c \
 		     protocols/weixin.c\
 		     protocols/youku.c\
+			 protocols/iqiyi.c\
 		     third_party/include/actypes.h \
 		     third_party/include/ahocorasick.h \
 		     third_party/include/node.h \
